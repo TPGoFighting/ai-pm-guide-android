@@ -1,0 +1,43 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk ai-pm-guide.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-pm-guide-apk
+          path: ai-pm-guide.apk
+
+      - name: Publish to Release
+        run: |
+          gh release create "v1.0.${{ github.run_number }}" ai-pm-guide.apk \
+            --title "AI 产品经理求职手账 v1.0.${{ github.run_number }}" \
+            --notes "Debug build from ${{ github.sha }}. 可直接安装。"
+        env:
+          GH_TOKEN: ${{ github.token }}
