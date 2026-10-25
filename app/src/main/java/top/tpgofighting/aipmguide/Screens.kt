@@ -3,6 +3,7 @@ package top.tpgofighting.aipmguide
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -110,6 +111,40 @@ fun ChapterCard(chapter: Chapter, stamped: Boolean, onClick: () -> Unit) {
     }
 }
 
+fun groupIcon(id: String): ImageVector = when (id) {
+    "direction" -> Icons.Filled.Explore
+    "method" -> Icons.Filled.Lightbulb
+    else -> Icons.Filled.CheckCircle
+}
+
+@Composable
+fun GroupCard(group: Group, stamped: Boolean, onClick: () -> Unit) {
+    SketchCard(onClick = onClick) {
+        Row(Modifier.padding(18.dp), verticalAlignment = Alignment.Top) {
+            Icon(groupIcon(group.id), contentDescription = null, tint = Ink, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(group.title, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(group.intro, color = Grey, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+            Spacer(Modifier.width(10.dp))
+            Surface(
+                color = if (stamped) Accent else Color.Transparent,
+                shape = RoundedCornerShape(99.dp),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (stamped) Ink else Grey),
+            ) {
+                Text(
+                    if (stamped) "已读" else "未读",
+                    fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
+                    color = if (stamped) Color.White else Grey,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun HomeScreen(nav: NavController, visited: Set<String>) {
     ScreenColumn {
@@ -149,9 +184,9 @@ fun HomeScreen(nav: NavController, visited: Set<String>) {
                 }
             }
         }
-        Text("CONTENTS / 七章索引", color = Grey, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp)
-        CHAPTERS.forEach { ch ->
-            ChapterCard(ch, visited.contains(ch.id)) { nav.navigate(ch.id) }
+        Text("CONTENTS / 三篇手账", color = Grey, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp)
+        GROUPS.forEach { g ->
+            GroupCard(g, g.chapters.all { visited.contains(it) }) { nav.navigate("group/${g.id}") }
         }
         FinaleCard()
     }
@@ -203,19 +238,14 @@ fun FinaleCard() {
     }
 }
 
-/* 组页：点底部导航图标后直接平铺组内各章全文，不再经过章节卡片点进单章 */
+/* 组页：点底部导航图标后直接打开融好的文章，页内不再有章节号标题 */
 @Composable
 fun GroupScreen(group: Group, nav: NavController, onVisit: (String) -> Unit) {
     ScreenColumn {
-        Text("章节组 / GROUP", color = Accent, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, letterSpacing = 1.sp)
+        Text("TP · CAREER NOTES", color = Accent, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, letterSpacing = 1.sp)
         Text(group.title, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp)
         Text(group.intro, color = Grey, fontSize = 13.sp, lineHeight = 20.sp)
-        group.chapters.forEachIndexed { ci, id ->
-            if (ci > 0) {
-                Spacer(Modifier.height(8.dp))
-                Box(Modifier.fillMaxWidth().height(1.dp).background(Grey.copy(alpha = 0.4f)))
-                Spacer(Modifier.height(8.dp))
-            }
+        group.chapters.forEach { id ->
             when (id) {
                 "takeaways" -> TakeawaysBody(nav, onVisit, flat = true)
                 "skills" -> SkillsBody(nav, onVisit, flat = true)
@@ -225,7 +255,7 @@ fun GroupScreen(group: Group, nav: NavController, onVisit: (String) -> Unit) {
                 }
                 "resume" -> ResumeBody(nav, onVisit, flat = true)
                 "workflow" -> WorkflowBody(nav, onVisit, flat = true)
-                "plan" -> PlanBody(onVisit)
+                "plan" -> PlanBody(onVisit, flat = true)
                 "details" -> DetailsBody(nav, onVisit, flat = true)
             }
         }
@@ -242,7 +272,7 @@ fun TakeawaysBody(nav: NavController, onVisit: (String) -> Unit, flat: Boolean =
     LaunchedEffect(Unit) { onVisit("takeaways") }
     val ch = chapterOf("takeaways")
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         TAKEAWAYS.forEach { t ->
             SketchCard(onClick = if (flat) null else ({ nav.navigate("takeaway/${t.id}") })) {
                 Column(Modifier.padding(20.dp)) {
@@ -296,7 +326,7 @@ fun SkillsBody(nav: NavController, onVisit: (String) -> Unit, flat: Boolean = fa
     var selected by remember { mutableStateOf(0) }
     val s = SKILLS[selected]
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         Text("点一点下面的能力，看要求和证明方式。", color = Grey, fontSize = 13.sp)
         FlowChipsGrid(selected) { selected = it }
         SketchCard {
@@ -390,7 +420,7 @@ fun ThinkingBody(nav: NavController, onVisit: (String) -> Unit, flat: Boolean = 
     LaunchedEffect(Unit) { onVisit("thinking") }
     val ch = chapterOf("thinking")
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         SketchCard(containerColor = DarkCard) {
             Column(Modifier.padding(22.dp)) {
                 Text("CASE QUESTION", color = Color(0xFFFF9A78), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, letterSpacing = 1.sp)
@@ -442,7 +472,7 @@ fun ResumeBody(nav: NavController, onVisit: (String) -> Unit, flat: Boolean = fa
     LaunchedEffect(Unit) { onVisit("resume") }
     val ch = chapterOf("resume")
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         RESUME_PANELS.forEach { p ->
             var open by remember { mutableStateOf(p.id == "tech") }
             SketchCard {
@@ -523,7 +553,7 @@ fun WorkflowBody(nav: NavController, onVisit: (String) -> Unit, flat: Boolean = 
     var selected by remember { mutableStateOf(0) }
     val s = WORK_STEPS[selected]
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         WORK_STEPS.forEachIndexed { i, step ->
             val on = i == selected
             SketchCard(
@@ -592,7 +622,7 @@ fun DetailsBody(nav: NavController, onVisit: (String) -> Unit, flat: Boolean = f
     val ch = chapterOf("details")
     val bgColors = listOf(Color.White, Color(0xFFFFF7D6), Color(0xFFEAFBE0), Color(0xFFFFEEF2))
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         TIPS.forEachIndexed { i, t ->
             SketchCard(
                 onClick = if (flat) null else ({ nav.navigate("tip/${t.id}") }),

@@ -94,9 +94,9 @@ fun LabBody(onVisit: (String) -> Unit) {
                 LabSlider(Icons.Filled.Store, "供给侧：摊位数", "${stores.roundToInt()} 家", stores, 200f..2000f, 35) { stores = it }
                 LabSlider(Icons.Filled.ShoppingBag, "单店日销量（份）", "${per.roundToInt()} 份", per, 50f..300f, 24) { per = it }
                 Spacer(Modifier.height(16.dp))
-                LabBar("需求侧", demFrac, "${fmt(dem)} 份", Color.White)
+                LabBar("需求侧", demFrac, "${fmt(dem.toDouble())} 份", Color.White)
                 Spacer(Modifier.height(10.dp))
-                LabBar("供给侧", supFrac, "${fmt(sup)} 份", Accent)
+                LabBar("供给侧", supFrac, "${fmt(sup.toDouble())} 份", Accent)
                 Spacer(Modifier.height(20.dp))
                 Box(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.07f)).padding(16.dp),
@@ -158,7 +158,7 @@ fun PlanScreen(onVisit: (String) -> Unit) {
 }
 
 @Composable
-fun PlanBody(onVisit: (String) -> Unit) {
+fun PlanBody(onVisit: (String) -> Unit, flat: Boolean = false) {
     LaunchedEffect(Unit) { onVisit("plan") }
     val ch = chapterOf("plan")
     val ctx = LocalContext.current
@@ -174,7 +174,7 @@ fun PlanBody(onVisit: (String) -> Unit) {
         animationSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow),
     )
     BodyColumn {
-        ChapterHeader(ch, true)
+        if (!flat) ChapterHeader(ch, true)
         SketchCard {
             Column(Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
