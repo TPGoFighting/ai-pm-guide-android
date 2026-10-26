@@ -79,8 +79,15 @@ class MainActivity : ComponentActivity() {
                 val visited = remember { mutableStateListOf<String>() }
                 val onVisit: (String) -> Unit = { id -> if (!visited.contains(id)) visited.add(id) }
                 val backStack by nav.currentBackStackEntryAsState()
-                val currentRoute = backStack?.destination?.route
-                val selectedBottom = bottomForRoute(currentRoute)
+                /* destination.route 是路由模板（如 group/{gid}），不是具体地址：
+                   直接用它比对底部栏永远匹配不上任何一项，所以先按参数还原成具体路由 */
+                val destRoute = backStack?.destination?.route
+                val concreteRoute = if (destRoute == "group/{gid}") {
+                    "group/${backStack?.arguments?.getString("gid") ?: "direction"}"
+                } else {
+                    destRoute
+                }
+                val selectedBottom = bottomForRoute(concreteRoute)
 
                 Scaffold(
                     containerColor = Paper,
@@ -107,11 +114,15 @@ class MainActivity : ComponentActivity() {
                             BOTTOM_ITEMS.forEach { item ->
                                 NavigationBarItem(
                                     selected = selectedBottom == item.route,
+                                    /* 不要用 saveState/restoreState：三个组共用同一条
+                                       group/{gid} 路由，保存的状态按路由模板存取，
+                                       切组时会把上一个组的旧参数（gid）恢复出来，
+                                       表现为“点了别的导航栏也进不去、还停在上一个组”。
+                                       组页切走即重建，和网页端行为一致。 */
                                     onClick = {
                                         nav.navigate(item.route) {
-                                            popUpTo(nav.graph.startDestinationId) { saveState = true }
+                                            popUpTo(nav.graph.startDestinationId)
                                             launchSingleTop = true
-                                            restoreState = true
                                         }
                                     },
                                     icon = { Icon(item.icon, contentDescription = item.label) },
